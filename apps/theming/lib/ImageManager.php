@@ -1,30 +1,30 @@
 <?php
 /**
- * @copyright Copyright (c) 2016 Julius Härtl <jus@bitgrid.net>
- *
- * @author Christoph Wurst <christoph@winzerhof-wurst.at>
- * @author Daniel Kesselberg <mail@danielkesselberg.de>
- * @author Julius Haertl <jus@bitgrid.net>
- * @author Julius Härtl <jus@bitgrid.net>
- * @author Michael Weimann <mail@michael-weimann.eu>
- * @author Roeland Jago Douma <roeland@famdouma.nl>
- *
- * @license GNU AGPL version 3 or any later version
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- *
- */
+* @copyright Copyright (c) 2016 Julius Härtl <jus@bitgrid.net>
+*
+* @author Christoph Wurst <christoph@winzerhof-wurst.at>
+* @author Daniel Kesselberg <mail@danielkesselberg.de>
+* @author Julius Haertl <jus@bitgrid.net>
+* @author Julius Härtl <jus@bitgrid.net>
+* @author Michael Weimann <mail@michael-weimann.eu>
+* @author Roeland Jago Douma <roeland@famdouma.nl>
+*
+* @license GNU AGPL version 3 or any later version
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU Affero General Public License as
+* published by the Free Software Foundation, either version 3 of the
+* License, or (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU Affero General Public License for more details.
+*
+* You should have received a copy of the GNU Affero General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/>.
+*
+*/
 
 namespace OCA\Theming;
 
@@ -41,70 +41,70 @@ use OCP\IURLGenerator;
 
 class ImageManager {
 
-	/** @var IConfig */
-	private $config;
-	/** @var IAppData */
-	private $appData;
-	/** @var IURLGenerator */
-	private $urlGenerator;
-	/** @var array */
-	private $supportedImageKeys = ['background', 'logo', 'logoheader', 'favicon'];
-	/** @var ICacheFactory */
-	private $cacheFactory;
-	/** @var ILogger */
-	private $logger;
-	/** @var ITempManager */
-	private $tempManager;
+/** @var IConfig */
+private $config;
+/** @var IAppData */
+private $appData;
+/** @var IURLGenerator */
+private $urlGenerator;
+/** @var array */
+private $supportedImageKeys = ['background', 'logo', 'logoheader', 'favicon'];
+/** @var ICacheFactory */
+private $cacheFactory;
+/** @var ILogger */
+private $logger;
+/** @var ITempManager */
+private $tempManager;
 
-	public function __construct(IConfig $config,
-								IAppData $appData,
-								IURLGenerator $urlGenerator,
-								ICacheFactory $cacheFactory,
-								ILogger $logger,
-								ITempManager $tempManager
-	) {
-		$this->config = $config;
-		$this->appData = $appData;
-		$this->urlGenerator = $urlGenerator;
-		$this->cacheFactory = $cacheFactory;
-		$this->logger = $logger;
-		$this->tempManager = $tempManager;
+public function __construct(IConfig $config,
+							IAppData $appData,
+							IURLGenerator $urlGenerator,
+							ICacheFactory $cacheFactory,
+							ILogger $logger,
+							ITempManager $tempManager
+) {
+	$this->config = $config;
+	$this->appData = $appData;
+	$this->urlGenerator = $urlGenerator;
+	$this->cacheFactory = $cacheFactory;
+	$this->logger = $logger;
+	$this->tempManager = $tempManager;
+}
+
+public function getImageUrl(string $key, bool $useSvg = true): string {
+	$cacheBusterCounter = $this->config->getAppValue('theming', 'cachebuster', '0');
+	try {
+		$image = $this->getImage($key, $useSvg);
+		return $this->urlGenerator->linkToRoute('theming.Theming.getImage', [ 'key' => $key ]) . '?v=' . $cacheBusterCounter;
+	} catch (NotFoundException $e) {
 	}
 
-	public function getImageUrl(string $key, bool $useSvg = true): string {
-		$cacheBusterCounter = $this->config->getAppValue('theming', 'cachebuster', '0');
-		try {
-			$image = $this->getImage($key, $useSvg);
-			return $this->urlGenerator->linkToRoute('theming.Theming.getImage', [ 'key' => $key ]) . '?v=' . $cacheBusterCounter;
-		} catch (NotFoundException $e) {
-		}
-
-		switch ($key) {
-			case 'logo':
-			case 'logoheader':
-			case 'favicon':
-				return $this->urlGenerator->imagePath('core', 'logo/logo.png') . '?v=' . $cacheBusterCounter;
-			case 'background':
-				return $this->urlGenerator->imagePath('core', 'background.png') . '?v=' . $cacheBusterCounter;
-		}
+	switch ($key) {
+		case 'logo':
+		case 'logoheader':
+		case 'favicon':
+			return $this->urlGenerator->imagePath('core', 'logo/logo.png') . '?v=' . $cacheBusterCounter;
+		case 'background':
+			return $this->urlGenerator->imagePath('core', 'background.png') . '?v=' . $cacheBusterCounter;
 	}
+}
 
-	public function getImageUrlAbsolute(string $key, bool $useSvg = true): string {
-		return $this->urlGenerator->getAbsoluteURL($this->getImageUrl($key, $useSvg));
-	}
+public function getImageUrlAbsolute(string $key, bool $useSvg = true): string {
+	return $this->urlGenerator->getAbsoluteURL($this->getImageUrl($key, $useSvg));
+}
 
-	/**
-	 * @param string $key
-	 * @param bool $useSvg
-	 * @return ISimpleFile
-	 * @throws NotFoundException
-	 * @throws NotPermittedException
-	 */
-	public function getImage(string $key, bool $useSvg = true): ISimpleFile {
+/**
+ * @param string $key
+ * @param bool $useSvg
+ * @return ISimpleFile
+ * @throws NotFoundException
+ * @throws NotPermittedException
+ */
+public function getImage(string $key, bool $useSvg = true): ISimpleFile {
 		$pngFile = null;
-		$logo = $this->config->getAppValue('theming', $key . 'Mime', false);
+		$logo = $this->config->getAppValue('theming', $key . 'Mime', '');
 		$folder = $this->appData->getFolder('images');
-		if ($logo === false || !$folder->fileExists($key)) {
+		if ($logo === '' || !$folder->fileExists($key)) {
 			throw new NotFoundException();
 		}
 		if (!$useSvg && $this->shouldReplaceIcons()) {
