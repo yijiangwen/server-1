@@ -1,0 +1,5 @@
+{
+    "name": "NextcloudServer",
+    "image": "ubuntu:focal",
+    "postCreateCommand": ".devcontainer/setup.sh"
+}
